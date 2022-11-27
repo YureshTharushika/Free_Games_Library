@@ -1,6 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:free_games_library/about.dart';
+import 'package:free_games_library/themes.dart';
 import 'package:http/http.dart' as http;
 import 'game.dart';
 
@@ -14,7 +18,8 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: MyHomePage(title: 'Free Games Database'),
     );
   }
@@ -51,7 +56,90 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  static Future<List<Game>> getCategoryGames(String category) async {
+    String url =
+        "https://www.freetogame.com/api/games?category=${category.toLowerCase()}";
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final List games = json.decode(response.body);
+      return games.map<Game>(Game.fromJson).toList();
+    } else {
+      throw Exception();
+    }
+  }
+
+  bool switchValue = false;
+
   List<Game> gamesList = [];
+
+  List<String> categoryList = [
+    'All',
+    '2D',
+    '3D',
+    'Action',
+    'Action-RPG',
+    'Anime',
+    'Battle-Royale',
+    'Card',
+    'Fantasy',
+    'Fighting',
+    'First-Person',
+    'Flight',
+    'Horror',
+    'Low-Spec',
+    'Martial-Arts',
+    'Military',
+    'MMO',
+    'MMOFPS',
+    'MMORPG',
+    'MMORTS',
+    'MMOTPS',
+    'MOBA',
+    'Open-World',
+    'Permadeath',
+    'Pixel',
+    'PvE',
+    'PvP',
+    'Racing',
+    'Sailing',
+    'Sandbox',
+    'Sci-Fi',
+    'Shooter',
+    'Side-Scroller',
+    'Social',
+    'Space',
+    'Sports',
+    'Strategy',
+    'Superhero',
+    'Survival',
+    'Tank',
+    'Third-Person',
+    'Top-Down',
+    'Tower-Defense',
+    'Turn-Based',
+    'Voxel',
+    'Zombie'
+  ];
+
+  Color background = Themes().lightbrown;
+  Color secondaryColor = Themes().lightgrey;
+  Color mainText = Themes().darkyellow;
+  Color secondaryText = Themes().lightyellow;
+
+  void switchTheme() {
+    if (switchValue == false) {
+      background = Themes().lightbrown;
+      secondaryColor = Themes().lightgrey;
+      mainText = Themes().darkyellow;
+      secondaryText = Themes().lightyellow;
+    } else if (switchValue == true) {
+      background = Themes().darkgreen;
+      secondaryColor = Themes().green;
+      mainText = Themes().lightgreen;
+      secondaryText = Themes().limegreen;
+    }
+  }
 
   @override
   void initState() {
@@ -61,6 +149,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future init() async {
     final displaylist = await getGames();
+    setState(() {
+      gamesList = displaylist;
+    });
+  }
+
+  Future initSort(String value) async {
+    final displaylist = await getCategoryGames(value);
     setState(() {
       gamesList = displaylist;
     });
@@ -79,6 +174,16 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void categorySort(String value) {
+    setState(() {
+      if (value == "All") {
+        init();
+      } else {
+        initSort(value);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -88,41 +193,57 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      backgroundColor: const Color(0xFF1f1545),
+      backgroundColor: background,
+      appBar: AppBar(
+        backgroundColor: background,
+        elevation: 0.0,
+        title: Text(
+          "Free Games Library",
+          style: TextStyle(
+              color: mainText, fontSize: 20.0, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(
-              height: 20.0,
-            ),
-            Text(
-              "Search for a Game",
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20.0,
-                  fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(
-              height: 10.0,
-            ),
             TextField(
               onChanged: (value) => updateList(value),
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: mainText),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Color(0xff302360),
+                fillColor: secondaryColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.0),
                   borderSide: BorderSide.none,
                 ),
-                hintText: "Eg: Brawlhalla",
-                hintStyle: TextStyle(color: Colors.grey),
-                suffixIcon: Icon(Icons.search),
-                suffixIconColor: Colors.purple.shade900,
+                hintText: "Search...",
+                hintStyle: TextStyle(color: mainText),
+                suffixIcon: Icon(
+                  Icons.search,
+                  color: mainText,
+                ),
               ),
+            ),
+            const SizedBox(
+              height: 10.0,
+            ),
+            SizedBox(
+              height: 60,
+              child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.all(8.0),
+                  itemCount: 46,
+                  separatorBuilder: (context, index) {
+                    return const SizedBox(
+                      width: 5.0,
+                    );
+                  },
+                  itemBuilder: (context, index) {
+                    return buildCategoryCard(index);
+                  }),
             ),
             const SizedBox(
               height: 10.0,
@@ -133,7 +254,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: Text(
                         "No Results Found!",
                         style: TextStyle(
-                            color: Colors.white,
+                            color: mainText,
                             fontSize: 18.0,
                             fontWeight: FontWeight.bold),
                       ),
@@ -147,16 +268,15 @@ class _MyHomePageState extends State<MyHomePage> {
                           title: Text(
                             game.title,
                             style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
+                                color: mainText, fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(
                             game.genre,
-                            style: TextStyle(color: Colors.white60),
+                            style: TextStyle(color: Colors.black),
                           ),
                           trailing: Text(
                             game.releaseDate,
-                            style: TextStyle(color: Colors.amber),
+                            style: TextStyle(color: secondaryColor),
                           ),
                           leading: ClipRRect(
                               borderRadius: BorderRadius.circular(4.0),
@@ -167,39 +287,140 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
+      drawer: buildNavigationDrawer(context),
+    );
+  }
+
+  Widget buildCategoryCard(int index) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8.0),
+      onTap: () {
+        categorySort(categoryList[index]);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: secondaryColor,
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        padding: const EdgeInsets.all(8.0),
+        child: Center(
+          child: Text(categoryList[index]),
+        ),
+      ),
+    );
+  }
+
+  Widget buildNavigationDrawer(BuildContext context) {
+    return Drawer(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            buildHeader(context),
+            buildMenuItems(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildHeader(BuildContext context) {
+    return Container(
+      height: 200.0,
+      color: background,
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top,
+      ),
+      child: Column(
+        children: [
+          const SizedBox(
+            height: 70.0,
+          ),
+          Text(
+            'FREE GAMES LIBRARY',
+            style: TextStyle(color: mainText, fontSize: 26.0),
+          ),
+          const SizedBox(
+            height: 30.0,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildMenuItems(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10.0),
+      child: Wrap(
+        runSpacing: 10.0,
+        children: [
+          ListTile(
+            leading: Icon(
+              Icons.home_outlined,
+              color: secondaryColor,
+            ),
+            title: Text(
+              'Home',
+              style: TextStyle(color: mainText),
+            ),
+            onTap: () => Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                    builder: (context) =>
+                        const MyHomePage(title: 'Free Games Library'))),
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.person_outlined,
+              color: secondaryColor,
+            ),
+            title: Text(
+              'About',
+              style: TextStyle(color: mainText),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => const About()));
+            },
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.home_outlined,
+              color: secondaryColor,
+            ),
+            title: Text(
+              'Dark Mode',
+              style: TextStyle(color: mainText),
+            ),
+            trailing: buildThemeSwitch(),
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.exit_to_app_outlined,
+              color: secondaryColor,
+            ),
+            title: Text(
+              'Exit',
+              style: TextStyle(color: mainText),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildThemeSwitch() {
+    return Switch.adaptive(
+      activeColor: background,
+      activeTrackColor: secondaryColor,
+      inactiveThumbColor: background,
+      inactiveTrackColor: secondaryColor,
+      value: switchValue,
+      onChanged: (value) => setState(() {
+        switchValue = value;
+        switchTheme();
+      }),
     );
   }
 }
-
-// Center(
-//         // Center is a layout widget. It takes a single child and positions it
-//         // in the middle of the parent.
-//         child: Column(
-//           children: [
-//             TextField(
-//               onTap: SearchResultPage(),
-//               controller: controller,
-//               decoration: InputDecoration(
-//                 suffixIcon: const Icon(Icons.search),
-//                 hintText: 'Game Title',
-//                 border: OutlineInputBorder(
-//                   borderRadius: BorderRadius.circular(20),
-//                   borderSide: BorderSide(color: Colors.grey),
-//                 ),
-//               ),
-//               onChanged: searchGame,
-//             ),
-//             FutureBuilder<List<Game>>(
-//               future: gamesFuture,
-//               builder: (context, snapshot) {
-//                 if (snapshot.hasData) {
-//                   final games = snapshot.data!;
-//                   return buildGames(games);
-//                 } else {
-//                   return const Text('No Games Data!');
-//                 }
-//               },
-//             )
-//           ],
-//         ),
-//       ),
