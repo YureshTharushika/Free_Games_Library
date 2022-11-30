@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:free_games_library/about.dart';
+
 import 'package:free_games_library/themes.dart';
 import 'package:http/http.dart' as http;
 import 'game.dart';
@@ -370,22 +370,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           ListTile(
             leading: Icon(
-              Icons.person_outlined,
-              color: secondaryColor,
-            ),
-            title: Text(
-              'About',
-              style: TextStyle(color: mainText),
-            ),
-            onTap: () {
-              Navigator.pop(context);
-
-              Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (context) => const About()));
-            },
-          ),
-          ListTile(
-            leading: Icon(
               Icons.home_outlined,
               color: secondaryColor,
             ),
@@ -404,6 +388,13 @@ class _MyHomePageState extends State<MyHomePage> {
               'Exit',
               style: TextStyle(color: mainText),
             ),
+            onTap: () {
+              if (Platform.isAndroid) {
+                SystemNavigator.pop();
+              } else {
+                exit(0);
+              }
+            },
           ),
         ],
       ),
